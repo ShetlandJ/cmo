@@ -8,7 +8,7 @@
         </div>
 
         <div class="pass-rate-container">
-          <p>Enter pass rate (optional):</p>
+            <p>Enter pass rate (optional):</p>
             <input
                 class="pass-rate"
                 type="number"
@@ -65,8 +65,7 @@
                                 index === 0 && data.passed === 'pass',
                             'failed-cell':
                                 index === 0 && data.passed === 'fail',
-                            'blank-cell':
-                                index === 0 && data.passed === 'none',
+                            'blank-cell': index === 0 && data.passed === 'none',
                         }"
                     >
                         <strong>{{ outcome.name }}</strong
