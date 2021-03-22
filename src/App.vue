@@ -1,13 +1,29 @@
 <template>
     <div id="app">
         <div>
-            <textarea v-model="pastedContent" />
+            <textarea
+                v-model="pastedContent"
+                placeholder="Paste Evaluagent payload here"
+            />
         </div>
-        <div style="margin-bottom: 10px">
-            <button @click="parsePastedContent">Parse</button>
+
+        <div class="pass-rate-container">
+          <p>Enter pass rate (optional):</p>
+            <input
+                class="pass-rate"
+                type="number"
+                v-model="passRate"
+                @change="parsePastedContent"
+            />
+        </div>
+
+        <div style="margin-bottom: 10px" v-if="pastedContent.length > 0">
+            <button class="parse" @click="parsePastedContent">Parse</button>
+            <button class="clear" @click="clearContent">Clear</button>
         </div>
 
         <input
+            class="search-bar"
             v-if="tables.length > 0"
             type="text"
             v-model="searchString"
@@ -15,12 +31,12 @@
         />
 
         <div v-for="dataTable in tables" :key="dataTable.id">
-            <h3
-                style="margin-bottom: 0"
+            <h2
+                style="margin-bottom: 5px"
                 v-if="searchedItems(dataTable.rows).length > 0"
             >
                 {{ dataTable.name }}
-            </h3>
+            </h2>
             <table
                 class="output"
                 v-if="searchedItems(dataTable.rows).length > 0"
@@ -44,6 +60,14 @@
                         class="cell"
                         v-for="(outcome, index) in data.outcomes"
                         :key="Math.random() + index"
+                        :class="{
+                            'passed-cell':
+                                index === 0 && data.passed === 'pass',
+                            'failed-cell':
+                                index === 0 && data.passed === 'fail',
+                            'blank-cell':
+                                index === 0 && data.passed === 'none',
+                        }"
                     >
                         <strong>{{ outcome.name }}</strong
                         >: {{ outcome.count }}
@@ -76,6 +100,7 @@ export default {
             tables: [],
             output: [],
             searchString: "",
+            passRate: null,
         };
     },
     computed: {
@@ -95,13 +120,26 @@ export default {
         },
     },
     methods: {
+        clearContent() {
+            this.pastedContent = "";
+            this.tables = [];
+        },
         parsePastedContent() {
+            this.tables = [];
+
             this.parsedContent.data.metrics.forEach((metrics) => {
                 this.output = [];
                 const { lineItems, level } = metrics;
 
-                lineItems.forEach((lineItem) => {
-                    this.output.push(this.formatRowForOutput(lineItem));
+                lineItems.forEach((lineItem, index) => {
+                    const data = this.formatRowForOutput(lineItem);
+                    this.output.push(data);
+
+                    if (this.output[index]) {
+                        this.output[index].passed = this.passFail(
+                            Number(data.outcomes[0].percentage)
+                        );
+                    }
                 });
 
                 this.tables.push({
@@ -130,13 +168,16 @@ export default {
             payload.total = totalWithoutNa;
 
             lineItem.templateLineOutcomes.forEach((outcome) => {
+                const percentage = this.percentage(
+                    outcome.applicable,
+                    totalWithoutNa
+                );
+
                 payload.outcomes.push({
                     count: outcome.applicable,
                     name: outcome.scoreName,
-                    percentage: this.percentage(
-                        outcome.applicable,
-                        totalWithoutNa
-                    ),
+                    percentage,
+                    // pass: this.passFail(Number(percentage))
                 });
             });
 
@@ -168,6 +209,21 @@ export default {
 
             return uuid;
         },
+        passFail(percentage) {
+            if (!this.passRate) return "none";
+
+            console.log(
+                Number(percentage),
+                Number(this.passRate),
+                Number(percentage) < Number(this.passRate)
+            );
+
+            if (Number(percentage) < Number(this.passRate)) {
+                return "fail";
+            }
+
+            return "pass";
+        },
     },
 };
 </script>
@@ -192,9 +248,17 @@ textarea {
     background-repeat: no-repeat;
 }
 
-input {
+.search-bar {
     width: 600px;
     height: 20px;
+}
+
+.pass-rate {
+    width: 100px;
+    height: 20px;
+}
+
+input {
     border: 3px solid #cccccc;
     padding: 5px;
     font-family: Tahoma, sans-serif;
@@ -204,7 +268,6 @@ input {
 }
 
 button {
-    background-color: #00109f; /* Green */
     border: none;
     color: white;
     padding: 15px 32px;
@@ -212,6 +275,16 @@ button {
     text-decoration: none;
     display: inline-block;
     font-size: 16px;
+}
+
+.parse {
+    background-color: #00109f;
+    margin-right: 5px;
+}
+
+.clear {
+    background-color: lightcoral;
+    margin-left: 5px;
 }
 
 .complete {
@@ -245,5 +318,19 @@ button {
     text-align: left;
     background-color: #4caf50;
     color: white;
+}
+
+.passed-cell {
+    background-color: green;
+    color: white;
+}
+
+.failed-cell {
+    background-color: tomato;
+    color: white;
+}
+
+.blank-cell {
+    background-color: none;
 }
 </style>
