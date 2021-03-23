@@ -3,7 +3,7 @@
         <div>
             <textarea
                 v-model="pastedContent"
-                placeholder="Paste Evaluagent payload here"
+                placeholder="Paste payload here"
             />
         </div>
 
